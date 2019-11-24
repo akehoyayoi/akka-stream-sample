@@ -11,6 +11,13 @@ import scala.util.Random
 
 object Main {
 
+  def timedFuture[T](memo: String)(futureBlock: ⇒ Future[T])(implicit ec: ExecutionContext): Future[T] = {
+    val startTime: Long = System.nanoTime()
+    val result: Future[T] = futureBlock
+    result.onComplete(_ ⇒ println(memo + ":" + (System.nanoTime - startTime) / 1000000))
+    result
+  }
+
   def spin1(value: Int): Int = {
     val max = Random.nextInt(10)
     val start = System.currentTimeMillis()
@@ -34,57 +41,61 @@ object Main {
 
     val max = 20
 
-    println("not async")
-    val done1 = Source(1 to max)
+    val done1 = timedFuture("not async") {
+      Source(1 to max)
       .map(spin1)
       .map(spin2)
-      .runWith(Sink.ignore)
+      .runWith(Sink.ignore) }
     Await.result(done1,Duration.Inf)
 
-    println("applied async")
-    val done2 = Source(1 to max)
+    val done2 = timedFuture("applied async") {
+      Source(1 to max)
       .map(spin1)
       .async
       .map(spin2)
-      .runWith(Sink.ignore)
+      .runWith(Sink.ignore) }
     Await.result(done2,Duration.Inf)
 
-    println("mapAsync(parallelism = 1)")
-    val done3 = Source(1 to max)
-      .mapAsync(1)(x ⇒ Future(spin1(x)))
-      .mapAsync(1)(x ⇒ Future(spin2(x)))
-      .runWith(Sink.ignore)
+    val done3 = timedFuture("mapAsync(parallelism = 1)") {
+      Source(1 to max)
+        .mapAsync(1)(x ⇒ Future(spin1(x)))
+        .mapAsync(1)(x ⇒ Future(spin2(x)))
+        .runWith(Sink.ignore)
+    }
     Await.result(done3,Duration.Inf)
 
-    println("mapAsync(parallelism = 4)")
-    val done4 = Source(1 to max)
-      .mapAsync(4)(x => Future(spin1(x)))
-      .mapAsync(4)(x => Future(spin2(x)))
-      .runWith(Sink.ignore)
+    val done4 = timedFuture("mapAsync(parallelism = 4)") {
+      Source(1 to max)
+        .mapAsync(4)(x => Future(spin1(x)))
+        .mapAsync(4)(x => Future(spin2(x)))
+        .runWith(Sink.ignore)
+    }
     Await.result(done4,Duration.Inf)
 
-    println("mapAsync(parallelism = 1000)")
-    val done5 = Source(1 to max)
-      .mapAsync(1000)(x => Future(spin1(x)))
-      .mapAsync(1000)(x => Future(spin2(x)))
-      .runWith(Sink.ignore)
+    val done5 = timedFuture("mapAsync(parallelism = 1000)") {
+      Source(1 to max)
+        .mapAsync(1000)(x => Future(spin1(x)))
+        .mapAsync(1000)(x => Future(spin2(x)))
+        .runWith(Sink.ignore)
+    }
     Await.result(done5,Duration.Inf)
 
-    println("mapAsyncUnordered(parallelism = 4)")
-    val done6 = Source(1 to max)
-      .mapAsyncUnordered(4)(x => Future(spin1(x)))
-      .mapAsyncUnordered(4)(x => Future(spin2(x)))
-      .runWith(Sink.ignore)
+    val done6 = timedFuture("mapAsyncUnordered(parallelism = 4)") {
+      Source(1 to max)
+        .mapAsyncUnordered(4)(x => Future(spin1(x)))
+        .mapAsyncUnordered(4)(x => Future(spin2(x)))
+        .runWith(Sink.ignore)
+    }
     Await.result(done6,Duration.Inf)
 
-    println("use buffer")
-    val done7 = Source(1 to max)
-      .mapAsync(1)(x => Future(spin1(x)))
-      .buffer(4, OverflowStrategy.backpressure)
-      .mapAsync(100)(x => Future(spin2(x)))
-      .runWith(Sink.ignore)
+    val done7 = timedFuture("use buffer") {
+      Source(1 to max)
+        .mapAsync(1)(x => Future(spin1(x)))
+        .buffer(4, OverflowStrategy.backpressure)
+        .mapAsync(100)(x => Future(spin2(x)))
+        .runWith(Sink.ignore)
+    }
     Await.result(done7,Duration.Inf)
-
 
     system.terminate()
   }
