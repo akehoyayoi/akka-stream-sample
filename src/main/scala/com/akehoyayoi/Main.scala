@@ -19,7 +19,7 @@ object Main {
   }
 
   def spin1(value: Int): Int = {
-    val max = Random.nextInt(10)
+    val max = 10 // Random.nextInt(10)
     val start = System.currentTimeMillis()
     while ((System.currentTimeMillis() - start) < max) {}
     println("spin1 : " +  start)
@@ -27,7 +27,7 @@ object Main {
   }
 
   def spin2(value: Int): Int = {
-    val max = Random.nextInt(20)
+    val max = 20 // Random.nextInt(20)
     val start = System.currentTimeMillis()
     while ((System.currentTimeMillis() - start) < max) {}
     println("spin2 : " +  start)
