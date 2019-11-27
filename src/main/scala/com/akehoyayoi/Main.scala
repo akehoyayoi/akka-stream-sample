@@ -112,9 +112,11 @@ object Main {
       FlowShape(broadcast.in, merge.out)
     })
 
-    val done8 = Source(1 to max)
-      .via(flowBroadcast)
-      .runWith(Sink.ignore)
+    val done8 = timedFuture("use broadcast") {
+      Source(1 to max)
+        .via(flowBroadcast)
+        .runWith(Sink.ignore)
+    }
     Await.result(done8, Duration.Inf)
 
     system.terminate()
