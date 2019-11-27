@@ -3,7 +3,7 @@ package com.akehoyayoi
 import akka.stream.scaladsl._
 import akka.NotUsed
 import akka.actor.ActorSystem
-import akka.stream.{OverflowStrategy, ThrottleMode}
+import akka.stream.{FlowShape, OverflowStrategy, ThrottleMode}
 
 import scala.concurrent.duration._
 import scala.concurrent._
@@ -96,6 +96,26 @@ object Main {
         .runWith(Sink.ignore)
     }
     Await.result(done7,Duration.Inf)
+
+    val flowBroadcast = Flow.fromGraph(GraphDSL.create() { implicit b =>
+      import GraphDSL.Implicits._
+
+      val workerCount = 4
+
+      val broadcast = b.add(Broadcast[Int](workerCount))
+      val merge = b.add(Merge[Int](workerCount))
+
+      for (_ <- 1 to workerCount) {
+        broadcast ~> Flow[Int].map(spin1) ~> merge
+      }
+
+      FlowShape(broadcast.in, merge.out)
+    })
+
+    val done8 = Source(1 to max)
+      .via(flowBroadcast)
+      .runWith(Sink.ignore)
+    Await.result(done8, Duration.Inf)
 
     system.terminate()
   }
